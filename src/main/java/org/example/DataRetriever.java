@@ -85,7 +85,47 @@ public class DataRetriever {
 
     }
     public List<Ingredient> createIngredients(List<Ingredient> newIngredients) throws SQLException {
-        return  newIngredients;
+        String requete = "SELECT Ingredient.name  AS name , Ingredient.category FROM Ingredient " +
+                "WHERE Ingredient.name = ? AND Ingredient.category::text = ?";
+
+        PreparedStatement pstmt = c.prepareStatement(requete);
+        for (Ingredient in : newIngredients){
+            String name = in.getName();
+            I cat = in.getIngredientType();
+            String catN = cat.name();
+
+            pstmt.setString(1,name);
+            pstmt.setString(2, catN);
+
+
+            ResultSet sr = pstmt.executeQuery();
+
+            if (sr.next()){
+                 throw new RuntimeException("deja existente dans la base " + cat);
+             }
+
+        }
+
+
+        String insertSQL = "INSERT INTO Ingredient(id_ingredient, name, price, category, dish_id) " +
+                "VALUES (?, ?, ?, ?::C, ?)";
+        PreparedStatement insertPstmt = c.prepareStatement(insertSQL);
+
+        for (Ingredient in : newIngredients){
+            insertPstmt.setInt(1, in.getId());
+            insertPstmt.setString(2, in.getName());
+            insertPstmt.setDouble(3, in.getPrice());
+            insertPstmt.setString(4, in.getIngredientType().name());
+            insertPstmt.setInt(5, in.getDish().getId());
+
+            insertPstmt.executeUpdate();
+        }
+
+        return newIngredients;
+
+
+
+
 
     }
 

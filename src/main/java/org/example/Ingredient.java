@@ -49,7 +49,7 @@ public class Ingredient {
         return ingredientType;
     }
 
-    public Ingredient setIngredientType(I ingredientType) {
+    public Ingredient setIngredientType() {
         this.ingredientType = ingredientType;
         return this;
     }
