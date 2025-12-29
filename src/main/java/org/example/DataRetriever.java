@@ -18,7 +18,7 @@ public class DataRetriever {
        try {
            String requete1 = "SELECT Dish.id_dish AS Dish_id, Dish.name AS Dish_name, Dish.dish_type AS Dish_type, " +
                    "Ingredient.id_ingredient AS Ingredient_id, Ingredient.name AS Ingredient_name, Ingredient.price AS price_Ingredient " +
-                   "FROM Dish INNER JOIN Ingredient " +
+                   "FROM Dish LEFT JOIN Ingredient " +
                    "ON Dish.id_dish = Ingredient.dish_id " +
                    "WHERE 1=1 ";
 
@@ -85,49 +85,132 @@ public class DataRetriever {
 
     }
     public List<Ingredient> createIngredients(List<Ingredient> newIngredients) throws SQLException {
-        String requete = "SELECT Ingredient.name  AS name , Ingredient.category FROM Ingredient " +
-                "WHERE Ingredient.name = ? AND Ingredient.category::text = ?";
+        try {
+            String requete = "SELECT Ingredient.name  AS name , Ingredient.category FROM Ingredient " +
+                    "WHERE Ingredient.name = ? AND Ingredient.category::text = ?";
 
-        PreparedStatement pstmt = c.prepareStatement(requete);
-        for (Ingredient in : newIngredients){
-            String name = in.getName();
-            I cat = in.getIngredientType();
-            String catN = cat.name();
+            PreparedStatement pstmt = c.prepareStatement(requete);
+            for (Ingredient in : newIngredients) {
+                String name = in.getName();
+                I cat = in.getIngredientType();
+                String catN = cat.name();
 
-            pstmt.setString(1,name);
-            pstmt.setString(2, catN);
+                pstmt.setString(1, name);
+                pstmt.setString(2, catN);
 
 
-            ResultSet sr = pstmt.executeQuery();
+                ResultSet sr = pstmt.executeQuery();
 
-            if (sr.next()){
-                 throw new RuntimeException("deja existente dans la base " + cat);
-             }
+                if (sr.next()) {
+                    throw new RuntimeException("deja existente dans la base " + cat);
+                }
 
+            }
+
+
+            String insertSQL = "INSERT INTO Ingredient(id_ingredient, name, price, category, dish_id) " +
+                    "VALUES (?, ?, ?, ?::C, ?)";
+            PreparedStatement insertPstmt = c.prepareStatement(insertSQL);
+
+            for (Ingredient in : newIngredients) {
+                insertPstmt.setInt(1, in.getId());
+                insertPstmt.setString(2, in.getName());
+                insertPstmt.setDouble(3, in.getPrice());
+                insertPstmt.setString(4, in.getIngredientType().name());
+                insertPstmt.setInt(5, in.getDish().getId());
+
+                insertPstmt.executeUpdate();
+            }
+
+            return newIngredients;
+
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
+    }
 
 
-        String insertSQL = "INSERT INTO Ingredient(id_ingredient, name, price, category, dish_id) " +
-                "VALUES (?, ?, ?, ?::C, ?)";
-        PreparedStatement insertPstmt = c.prepareStatement(insertSQL);
+    public Dish saveDish(Dish dishToSave) throws SQLException{
+        try {
+            String requete = "SELECT Dish.name AS name , Dish.dish_type AS type FROM Dish " +
+                    "WHERE Dish.name = ? AND Dish.id_dish = ?";
 
-        for (Ingredient in : newIngredients){
-            insertPstmt.setInt(1, in.getId());
-            insertPstmt.setString(2, in.getName());
-            insertPstmt.setDouble(3, in.getPrice());
-            insertPstmt.setString(4, in.getIngredientType().name());
-            insertPstmt.setInt(5, in.getDish().getId());
+            PreparedStatement pstmt = c.prepareStatement(requete);
 
-            insertPstmt.executeUpdate();
+            pstmt.setString(1,dishToSave.getName());
+            pstmt.setInt(2,dishToSave.getId());
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()){
+                String UpdateRq = "UPDATE Dish SET Dish.name = ? ,Dish.dish_type::D = ? WHERE id_dish = ?";
+
+                PreparedStatement UpdatePstmt = c.prepareStatement(UpdateRq);
+
+                UpdatePstmt.setString(1,dishToSave.getName());
+                UpdatePstmt.setString(2,dishToSave.getDishType().name());
+                UpdatePstmt.setInt(3,dishToSave.getId());
+                int sr = UpdatePstmt.executeUpdate();
+                System.out.println(sr + "ligne mis à jour");
+
+            }else {
+                String InsertRq = "INSERT INTO Dish (id_dish,name,dish_type) VALUES (?,?,?::D) ";
+
+                PreparedStatement InsertPstmt = c.prepareStatement(InsertRq);
+                InsertPstmt.setInt(1,dishToSave.getId());
+                InsertPstmt.setString(2,dishToSave.getName());
+                InsertPstmt.setString(3,dishToSave.getDishType().name());
+
+                int InsertSr = InsertPstmt.executeUpdate();
+
+                System.out.println(InsertSr + "ligne inséré(s)");
+
+
+
+
+
+
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
         }
-
-        return newIngredients;
-
-
-
-
+        return dishToSave;
 
     }
+
+   public List<Dish> findDishsByIngredientName(String IngredientName)throws SQLException{
+       List<Dish>di = new ArrayList<>();
+
+
+            String rq = "SELECT Dish.name AS n ,Dish.id_dish AS id,Dish.dish_type AS type,Ingredient.name AS N " +
+                    "FROM Dish " +
+                    "INNER JOIN Ingredient " +
+                    "ON Dish.id_dish = Ingredient.dish_id WHERE Ingredient.name = ?";
+
+            PreparedStatement pstmt = c.prepareStatement(rq);
+
+            pstmt.setString(1,IngredientName);
+            ResultSet rs = pstmt.executeQuery();
+            while(rs.next()){
+                int id = rs.getInt("id");
+                String name = rs.getString("n");
+                D type = D.valueOf(rs.getString("type"));
+
+                Dish d = new Dish(id,name,null,type);
+                    di.add(d);
+
+
+
+
+
+
+
+
+
+        }
+        return di;
+
+
+
+   }
 
 
 

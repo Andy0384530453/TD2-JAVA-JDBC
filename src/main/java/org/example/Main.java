@@ -16,18 +16,21 @@ public class Main {
 
             DataRetriever dt = new DataRetriever(c);
 
-            Dish d = dt.findDishById(0);
-            List<Ingredient> i = dt.findIngredients(1,3);
-
-            List<Ingredient> insert = new ArrayList<>();
-            Dish di = new Dish(4,"Glace pistache",null,DESSERT);
-            Ingredient ingredient = new Ingredient(6,"Pistache",12.0,VEGETABLE,di);
-            insert.add(ingredient);
-
-            dt.createIngredients(insert);
-
+            Dish d = dt.findDishById(4);
             System.out.println(d);
+
+            List<Ingredient> i = dt.findIngredients(2,3);
             System.out.println(i);
+
+            List<Dish> D = dt.findDishsByIngredientName("Laitue");
+            System.out.println(D);
+
+
+
+
+
+
+
 
 
 
