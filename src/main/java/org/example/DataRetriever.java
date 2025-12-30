@@ -198,19 +198,66 @@ public class DataRetriever {
                     di.add(d);
 
 
+            }
+            return di;
+    }
+    public List<Ingredient> findIngredientsByCriteria(String ingredientName, I category, String dishName, int page, int size) throws SQLException {
+        List<Ingredient> in = new ArrayList<>();
 
 
+        String rq = "SELECT Ingredient.name AS N,Ingredient.category AS C,Dish.name AS n " +
+                "FROM Dish INNER JOIN Ingredient ON Dish.id_dish = Ingredient.dish_id " +
+                "WHERE 1=1 "
+                ;
 
 
+        if (ingredientName != null){
+            rq += " AND Ingredient.name = ? ";
+        }
+        if (category != null){
+            rq += " AND Ingredient.category::text = ? ";
+
+        }
+        if (dishName != null){
+            rq += " AND Dish.name = ?";
+        }
+
+        int offset = (page - 1) * size;
+        rq += " LIMIT ?  OFFSET ?";
+        PreparedStatement pstmt = c.prepareStatement(rq);
+        int acc = 1;
+
+        if (ingredientName != null){
+            pstmt.setString(acc++,ingredientName);
+        }
+        if (category != null){
+            pstmt.setString(acc++, category.name());
+        }
+        if (dishName != null){
+            pstmt.setString(acc++,dishName);
+        }
+        pstmt.setInt(acc++,size);
+        pstmt.setInt(acc++,offset);
+
+
+        ResultSet sr = pstmt.executeQuery();
+
+        while(sr.next()){
+            String ingName = sr.getString("N");
+            I cat = I.valueOf(sr.getString("C"));
+            String dName = sr.getString("n");
+
+            Dish dish = new Dish(0,dName,null,null);
+            Ingredient ing = new Ingredient(0,ingName,0.0,cat,dish);
+
+            in.add(ing);
 
 
 
         }
-        return di;
 
-
-
-   }
+        return in;
+    }
 
 
 

@@ -25,7 +25,8 @@ public class Main {
             List<Dish> D = dt.findDishsByIngredientName("Laitue");
             System.out.println(D);
 
-
+            List <Ingredient> ing = dt.findIngredientsByCriteria(null, I.valueOf("VEGETABLE"),null,1,10);
+            System.out.println(ing);
 
 
 
