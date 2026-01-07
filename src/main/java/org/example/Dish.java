@@ -10,17 +10,25 @@ public class Dish {
     private String name;
     private D dishType;
     private List<Ingredient> ingredients;
+    private Double price;
 
-    public Dish(int id, String name, List<Ingredient> ingredients, D dishType) {
+    public Dish(int id, String name, List<Ingredient> ingredients, D dishType,Double price) {
         this.id = id;
         this.name = name;
         this.ingredients = ingredients;
         this.dishType = dishType;
+        this.price = price;
     }
 
 
+    public Dish setPrice(Double price) {
+        this.price = price;
+        return this;
+    }
 
-
+    public double getPrice() {
+        return price;
+    }
     public int getId() {
         return id;
     }
@@ -83,12 +91,23 @@ public class Dish {
     }
 
 
-    public double price (double price){
+    public double getDishCost() {
         double total = 0.0;
-        for (Ingredient i : ingredients){
-            total = total + i.getPrice();
+        if (ingredients != null) {
+            for (Ingredient i : ingredients) {
+                total += i.getPrice();
+            }
         }
         return total;
     }
 
+
+    public Double getGrossMargin() {
+        if (price == null) {
+            throw new IllegalStateException(
+                    "Impossible de calculer la marge : le prix de vente n'a pas encore de valeur."
+            );
+        }
+        return price - getDishCost();
+    }
 }

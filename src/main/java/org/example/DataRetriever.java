@@ -16,11 +16,12 @@ public class DataRetriever {
 
     public Dish findDishById(Integer id)  {
        try {
-           String requete1 = "SELECT Dish.id_dish AS Dish_id, Dish.name AS Dish_name, Dish.dish_type AS Dish_type, " +
+           String requete1 = "SELECT Dish.id_dish AS Dish_id, Dish.name AS Dish_name, Dish.dish_type AS Dish_type, Dish.price AS price, " +
                    "Ingredient.id_ingredient AS Ingredient_id, Ingredient.name AS Ingredient_name, Ingredient.price AS price_Ingredient " +
                    "FROM Dish LEFT JOIN Ingredient " +
                    "ON Dish.id_dish = Ingredient.dish_id " +
                    "WHERE 1=1 ";
+
 
            if (id != null) {
                requete1 += " AND Dish.id_dish = ? ";
@@ -39,8 +40,9 @@ public class DataRetriever {
                int id_Dish = rs.getInt("Dish_id");
                String name = rs.getString("Dish_name");
                D dishType = D.valueOf(rs.getString("Dish_type"));
+               double dishPrice = rs.getDouble("price");
 
-               d = new Dish(id_Dish, name, i, dishType);
+               d = new Dish(id_Dish, name, i, dishType,dishPrice);
 
                int id_Ingredient = rs.getInt("Ingredient_id");
 
@@ -102,7 +104,7 @@ public class DataRetriever {
                 ResultSet sr = pstmt.executeQuery();
 
                 if (sr.next()) {
-                    throw new RuntimeException("deja existente dans la base " + cat);
+                    throw new RuntimeException("deja existente dans la base " + name);
                 }
 
             }
@@ -141,13 +143,14 @@ public class DataRetriever {
             pstmt.setInt(2,dishToSave.getId());
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()){
-                String UpdateRq = "UPDATE Dish SET Dish.name = ? ,Dish.dish_type::D = ? WHERE id_dish = ?";
+                String UpdateRq = "UPDATE Dish SET Dish.name = ? ,Dish.dish_type::D = ?, Dish.price = ? WHERE id_dish = ?";
 
                 PreparedStatement UpdatePstmt = c.prepareStatement(UpdateRq);
 
                 UpdatePstmt.setString(1,dishToSave.getName());
                 UpdatePstmt.setString(2,dishToSave.getDishType().name());
-                UpdatePstmt.setInt(3,dishToSave.getId());
+                UpdatePstmt.setObject(3, dishToSave.getPrice());
+                UpdatePstmt.setInt(4,dishToSave.getId());
                 int sr = UpdatePstmt.executeUpdate();
                 System.out.println(sr + "ligne mis à jour");
 
@@ -180,7 +183,7 @@ public class DataRetriever {
        List<Dish>di = new ArrayList<>();
 
 
-            String rq = "SELECT Dish.name AS n ,Dish.id_dish AS id,Dish.dish_type AS type,Ingredient.name AS N " +
+            String rq = "SELECT Dish.name AS n ,Dish.id_dish AS id,Dish.dish_type AS type,Ingredient.name AS N Dish.price AS p " +
                     "FROM Dish " +
                     "INNER JOIN Ingredient " +
                     "ON Dish.id_dish = Ingredient.dish_id WHERE Ingredient.name = ?";
@@ -193,19 +196,22 @@ public class DataRetriever {
                 int id = rs.getInt("id");
                 String name = rs.getString("n");
                 D type = D.valueOf(rs.getString("type"));
+                double prix = rs.getDouble("p");
 
-                Dish d = new Dish(id,name,null,type);
+                Dish d = new Dish(id,name,null,type,prix);
                     di.add(d);
 
 
             }
+            pstmt.close();
             return di;
+
     }
     public List<Ingredient> findIngredientsByCriteria(String ingredientName, I category, String dishName, int page, int size) throws SQLException {
         List<Ingredient> in = new ArrayList<>();
 
 
-        String rq = "SELECT Ingredient.name AS N,Ingredient.category AS C,Dish.name AS n " +
+        String rq = "SELECT Ingredient.name AS N, Ingredient.category AS C, Dish.name AS n, Dish.price AS p " +
                 "FROM Dish INNER JOIN Ingredient ON Dish.id_dish = Ingredient.dish_id " +
                 "WHERE 1=1 "
                 ;
@@ -246,8 +252,9 @@ public class DataRetriever {
             String ingName = sr.getString("N");
             I cat = I.valueOf(sr.getString("C"));
             String dName = sr.getString("n");
+            double price = sr.getDouble("p");
 
-            Dish dish = new Dish(0,dName,null,null);
+            Dish dish = new Dish(0,dName,null,null,price);
             Ingredient ing = new Ingredient(0,ingName,0.0,cat,dish);
 
             in.add(ing);
@@ -255,7 +262,7 @@ public class DataRetriever {
 
 
         }
-
+        pstmt.close();
         return in;
     }
 
