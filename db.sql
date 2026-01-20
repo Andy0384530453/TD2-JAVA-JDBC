@@ -8,6 +8,5 @@ GRANT INSERT ON TABLE Dish,Ingredient TO mini_dish_db_manage;
 GRANT SELECT ON TABLE Dish,Ingredient TO mini_dish_db_manage;
 GRANT UPDATE ON TABLE Dish,Ingredient TO mini_dish_db_manage;
 GRANT DELETE ON TABLE Dish,Ingredient TO mini_dish_db_manage;
-
 REVOKE CREATE ON SCHEMA public FROM mini_dish_db;
-
+REVOKE CREATE ON SCHEMA public FROM Biblio
