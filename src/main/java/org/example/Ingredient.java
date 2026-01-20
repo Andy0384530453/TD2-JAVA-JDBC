@@ -9,14 +9,14 @@ public class Ingredient {
     private String name;
     private double price;
     private I ingredientType;
-    private Dish dish;
 
-    public Ingredient(int id, String name, double price, I ingredientType, Dish dish) {
+
+    public Ingredient(int id, String name, double price, I ingredientType ) {
         this.id = id;
         this.name = name;
         this.price = price;
         this.ingredientType = ingredientType;
-        this.dish = dish;
+
     }
     public int getId() {
         return id;
@@ -54,26 +54,20 @@ public class Ingredient {
         return this;
     }
 
-    public Dish getDish() {
-        return dish;
-    }
 
-    public Ingredient setDish(Dish dish) {
-        this.dish = dish;
-        return this;
-    }
+
 
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Ingredient that = (Ingredient) o;
-        return id == that.id && Double.compare(price, that.price) == 0 && Objects.equals(name, that.name) && ingredientType == that.ingredientType && Objects.equals(dish, that.dish);
+        return id == that.id && Double.compare(price, that.price) == 0 && Objects.equals(name, that.name) && ingredientType == that.ingredientType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, price, ingredientType, dish);
+        return Objects.hash(id, name, price, ingredientType);
     }
 
     @Override
@@ -83,7 +77,6 @@ public class Ingredient {
                 ", name='" + name + '\'' +
                 ", price=" + price +
                 ", ingredientType=" + ingredientType +
-                ", dish=" + dish +
                 '}';
     }
 

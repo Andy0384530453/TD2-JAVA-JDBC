@@ -14,35 +14,44 @@ public class DataRetriever {
     }
 
 
-    public Dish findDishById(Integer id)  {
+    public Dish findDishById(Integer id) throws SQLException {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
        try {
-           String requete1 = "SELECT Dish.id_dish AS Dish_id, Dish.name AS Dish_name, Dish.dish_type AS Dish_type, Dish.price AS price, " +
-                   "Ingredient.id_ingredient AS Ingredient_id, Ingredient.name AS Ingredient_name, Ingredient.price AS price_Ingredient " +
-                   "FROM Dish LEFT JOIN Ingredient " +
-                   "ON Dish.id_dish = Ingredient.dish_id " +
+           String requete1 = "SELECT Dish.id_dish AS Dish_id, Dish.name AS Dish_name, Dish.dish_type AS Dish_type, Dish.selling_price AS price, " +
+                   "Ingredient.id_ingredient AS Ingredient_id, Ingredient.name AS Ingredient_name, Ingredient.price AS price_Ingredient," +
+                   "DishIngredient.id_dishIngredient AS id_dishIngredient," +
+                   "DishIngredient.quantity_required AS Q," +
+                   "DishIngredient.unit AS UNIT " +
+                   "FROM Dish JOIN DishIngredient " +
+                   "ON Dish.id_dish = DishIngredient.id_dish " +
+                   "JOIN Ingredient " +
+                   "ON Ingredient.id_ingredient = DishIngredient.id_ingredient " +
                    "WHERE 1=1 ";
 
 
            if (id != null) {
                requete1 += " AND Dish.id_dish = ? ";
            }
-           PreparedStatement pstmt = c.prepareStatement(requete1);
-           List<Ingredient> i = new ArrayList<>();
+            pstmt = c.prepareStatement(requete1);
+           List<DishIngredient> di = new ArrayList<>();
            Dish d = null;
 
            if (id != null) {
                pstmt.setInt(1, id);
            }
 
-           ResultSet rs = pstmt.executeQuery();
+          rs = pstmt.executeQuery();
 
            while (rs.next()) {
-               int id_Dish = rs.getInt("Dish_id");
-               String name = rs.getString("Dish_name");
-               D dishType = D.valueOf(rs.getString("Dish_type"));
-               double dishPrice = rs.getDouble("price");
+               if (d == null) {
+                   int id_Dish = rs.getInt("Dish_id");
+                   String name = rs.getString("Dish_name");
+                   D dishType = D.valueOf(rs.getString("Dish_type"));
+                   double dishPrice = rs.getDouble("price");
 
-               d = new Dish(id_Dish, name, i, dishType,dishPrice);
+                   d = new Dish(id_Dish, name, dishType, di, dishPrice);
+               }
 
                int id_Ingredient = rs.getInt("Ingredient_id");
 
@@ -50,16 +59,36 @@ public class DataRetriever {
                    String name_Ingredient = rs.getString("Ingredient_name");
                    double price = rs.getDouble("price_Ingredient");
 
-                   Ingredient i1 =
-                           new Ingredient(id_Ingredient, name_Ingredient, price, null, null);
 
-                   i.add(i1);
+                   int id_dishIngredient = rs.getInt("id_dishIngredient");
+                   double quantityRequired = rs.getDouble("Q");
+                   Unit u = Unit.valueOf(rs.getString("unit"));
+
+                   Ingredient i1 =
+                           new Ingredient(id_Ingredient, name_Ingredient, price, null);
+                   DishIngredient dii = new DishIngredient(id_dishIngredient, quantityRequired, u, d, i1);
+
+                    di.add(dii);
+
                }
            }
+           if (di.isEmpty()){
+               throw new  RuntimeException("introuvé");
+           }
+
+
 
            return d;
        } catch (SQLException e) {
            throw new RuntimeException(e);
+       }finally {
+           if (pstmt != null){
+               pstmt.close();
+           } else if (rs != null) {
+               rs.close();
+
+           }
+
        }
 
 
@@ -79,8 +108,8 @@ public class DataRetriever {
             double price = rs.getDouble("Ingredient_price");
             I type = I.valueOf(rs.getString("Cat"));
 
-            Ingredient ingr = new Ingredient(id,name,price,type,null);
-            i.add(ingr);
+            Ingredient ing = new Ingredient(id,name,price,type);
+            i.add(ing);
         }
 
         return i;
@@ -119,7 +148,7 @@ public class DataRetriever {
                 insertPstmt.setString(2, in.getName());
                 insertPstmt.setDouble(3, in.getPrice());
                 insertPstmt.setString(4, in.getIngredientType().name());
-                insertPstmt.setInt(5, in.getDish().getId());
+
 
                 insertPstmt.executeUpdate();
             }
@@ -133,15 +162,19 @@ public class DataRetriever {
 
 
     public Dish saveDish(Dish dishToSave) throws SQLException{
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
         try {
             String requete = "SELECT Dish.name AS name , Dish.dish_type AS type FROM Dish " +
                     "WHERE Dish.name = ? AND Dish.id_dish = ?";
 
-            PreparedStatement pstmt = c.prepareStatement(requete);
+             pstmt = c.prepareStatement(requete);
 
             pstmt.setString(1,dishToSave.getName());
             pstmt.setInt(2,dishToSave.getId());
-            ResultSet rs = pstmt.executeQuery();
+
+            rs = pstmt.executeQuery();
+
             if (rs.next()){
                 String UpdateRq = "UPDATE Dish SET Dish.name = ? ,Dish.dish_type::D = ?, Dish.price = ? WHERE id_dish = ?";
 
@@ -174,98 +207,143 @@ public class DataRetriever {
             }
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
+        }finally {
+            try{
+                if (pstmt != null ){
+                    pstmt.close();
+                }else if(rs != null){
+                    rs.close();
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
+
         return dishToSave;
 
     }
 
-   public List<Dish> findDishsByIngredientName(String IngredientName)throws SQLException{
-       List<Dish>di = new ArrayList<>();
+    public List<Dish> findDishesByIngredientName(String ingredientName) throws SQLException {
+        List<Dish> di = new ArrayList<>();
+
+        String rq = "SELECT d.id_dish AS Dish_id, d.name AS Dish_name, d.dish_type AS Dish_type, d.selling_price AS Dish_price, " +
+                "di.id_dishingredient AS DishIngredient_id, di.quantity_required AS quantity, di.unit AS unit, " +
+                "i.id_ingredient AS Ingredient_id, i.name AS Ingredient_name, i.price AS Ingredient_price " +
+                "FROM Dish d " +
+                "JOIN DishIngredient di ON d.id_dish = di.id_dish " +
+                "JOIN Ingredient i ON di.id_ingredient = i.id_ingredient " +
+                "WHERE i.name = ?";
+
+        PreparedStatement pstmt = c.prepareStatement(rq);
+        pstmt.setString(1, ingredientName);
+        ResultSet rs = pstmt.executeQuery();
+
+        while (rs.next()) {
+
+            int dishId = rs.getInt("Dish_id");
+            String dishName = rs.getString("Dish_name");
+            D dishType = D.valueOf(rs.getString("Dish_type"));
+            double dishPrice = rs.getDouble("Dish_price");
+
+            Dish dish = new Dish(dishId, dishName, dishType, new ArrayList<>(), dishPrice);
 
 
-            String rq = "SELECT Dish.name AS n ,Dish.id_dish AS id,Dish.dish_type AS type,Ingredient.name AS N Dish.price AS p " +
-                    "FROM Dish " +
-                    "INNER JOIN Ingredient " +
-                    "ON Dish.id_dish = Ingredient.dish_id WHERE Ingredient.name = ?";
-
-            PreparedStatement pstmt = c.prepareStatement(rq);
-
-            pstmt.setString(1,IngredientName);
-            ResultSet rs = pstmt.executeQuery();
-            while(rs.next()){
-                int id = rs.getInt("id");
-                String name = rs.getString("n");
-                D type = D.valueOf(rs.getString("type"));
-                double prix = rs.getDouble("p");
-
-                Dish d = new Dish(id,name,null,type,prix);
-                    di.add(d);
+            int ingredientId = rs.getInt("Ingredient_id");
+            String ingredientNameDb = rs.getString("Ingredient_name");
+            double ingredientPrice = rs.getDouble("Ingredient_price");
+            Ingredient ing = new Ingredient(ingredientId,ingredientNameDb,ingredientPrice,null);
 
 
-            }
-            pstmt.close();
-            return di;
+            int diId = rs.getInt("DishIngredient_id");
+            double quantity = rs.getDouble("quantity");
+            Unit unit = Unit.valueOf(rs.getString("unit"));
+            DishIngredient dishIngredient = new DishIngredient(diId, quantity, unit, dish, ing);
 
+
+            dish.getDishIngredient().add(dishIngredient);
+
+
+            di.add(dish);
+        }
+
+
+        if (di.isEmpty()) {
+            throw new RuntimeException("plat introuvé  " + ingredientName);
+        }
+
+        rs.close();
+        pstmt.close();
+
+        return di;
     }
+
+
+
     public List<Ingredient> findIngredientsByCriteria(String ingredientName, I category, String dishName, int page, int size) throws SQLException {
-        List<Ingredient> in = new ArrayList<>();
+        List<Ingredient> ingredients = new ArrayList<>();
 
+        String rq = "SELECT i.id_ingredient AS ingredient_id, i.name AS ingredient_name, i.price AS ingredient_price, i.category AS category, " +
+                "d.id_dish AS dish_id, d.name AS dish_name, d.selling_price AS dish_price, d.dish_type AS dish_type " +
+                "FROM Ingredient i " +
+                "JOIN DishIngredient di ON i.id_ingredient = di.id_ingredient " +
+                "JOIN Dish d ON di.id_dish = d.id_dish " +
+                "WHERE 1=1";
 
-        String rq = "SELECT Ingredient.name AS N, Ingredient.category AS C, Dish.name AS n, Dish.price AS p " +
-                "FROM Dish INNER JOIN Ingredient ON Dish.id_dish = Ingredient.dish_id " +
-                "WHERE 1=1 "
-                ;
-
-
-        if (ingredientName != null){
-            rq += " AND Ingredient.name = ? ";
+        if (ingredientName != null) {
+            rq += " AND i.name = ?";
         }
-        if (category != null){
-            rq += " AND Ingredient.category::text = ? ";
 
+
+        if (category != null) {
+
+            rq += " AND i.category::text = ?";
         }
-        if (dishName != null){
-            rq += " AND Dish.name = ?";
+        if (dishName != null) {
+
+            rq += " AND d.name = ?";
+        }
+
+        rq += " LIMIT ? OFFSET ?";
+
+        PreparedStatement pstmt = c.prepareStatement(rq);
+        int index = 1;
+        if (ingredientName != null) {
+
+            pstmt.setString(index++, ingredientName);
+        }
+        if (category != null) {
+            pstmt.setString(index++, category.name());
+        }
+        if (dishName != null) {
+            pstmt.setString(index++, dishName);
         }
 
         int offset = (page - 1) * size;
-        rq += " LIMIT ?  OFFSET ?";
-        PreparedStatement pstmt = c.prepareStatement(rq);
-        int acc = 1;
+        pstmt.setInt(index++, size);
+        pstmt.setInt(index, offset);
 
-        if (ingredientName != null){
-            pstmt.setString(acc++,ingredientName);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+            int ingId = rs.getInt("ingredient_id");
+            String ingName = rs.getString("ingredient_name");
+            double ingPrice = rs.getDouble("ingredient_price");
+            I ingCat = I.valueOf(rs.getString("category"));
+
+            int dId = rs.getInt("dish_id");
+            String dName = rs.getString("dish_name");
+            double dPrice = rs.getDouble("dish_price");
+            D dType = D.valueOf(rs.getString("dish_type"));
+
+            Dish dish = new Dish(dId, dName, dType, null, dPrice); // dishIngredient peut rester null
+            Ingredient ingredient = new Ingredient(ingId, ingName, ingPrice, ingCat);
+
+            ingredients.add(ingredient);
         }
-        if (category != null){
-            pstmt.setString(acc++, category.name());
-        }
-        if (dishName != null){
-            pstmt.setString(acc++,dishName);
-        }
-        pstmt.setInt(acc++,size);
-        pstmt.setInt(acc++,offset);
 
-
-        ResultSet sr = pstmt.executeQuery();
-
-        while(sr.next()){
-            String ingName = sr.getString("N");
-            I cat = I.valueOf(sr.getString("C"));
-            String dName = sr.getString("n");
-            double price = sr.getDouble("p");
-
-            Dish dish = new Dish(0,dName,null,null,price);
-            Ingredient ing = new Ingredient(0,ingName,0.0,cat,dish);
-
-            in.add(ing);
-
-
-
-        }
+        rs.close();
         pstmt.close();
-        return in;
+        return ingredients;
     }
-
 
 
 }
