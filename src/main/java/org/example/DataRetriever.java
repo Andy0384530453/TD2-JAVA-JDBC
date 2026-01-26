@@ -1,6 +1,7 @@
 package org.example;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,7 +66,7 @@ public class DataRetriever {
                    Unit u = Unit.valueOf(rs.getString("unit"));
 
                    Ingredient i1 =
-                           new Ingredient(id_Ingredient, name_Ingredient, price, null);
+                           new Ingredient(id_Ingredient, name_Ingredient, price,null,null);
                    DishIngredient dii = new DishIngredient(id_dishIngredient, quantityRequired, u, d, i1);
 
                     di.add(dii);
@@ -108,7 +109,7 @@ public class DataRetriever {
             double price = rs.getDouble("Ingredient_price");
             I type = I.valueOf(rs.getString("Cat"));
 
-            Ingredient ing = new Ingredient(id,name,price,type);
+            Ingredient ing = new Ingredient(id,name,price,type,null);
             i.add(ing);
         }
 
@@ -251,7 +252,7 @@ public class DataRetriever {
             int ingredientId = rs.getInt("Ingredient_id");
             String ingredientNameDb = rs.getString("Ingredient_name");
             double ingredientPrice = rs.getDouble("Ingredient_price");
-            Ingredient ing = new Ingredient(ingredientId,ingredientNameDb,ingredientPrice,null);
+            Ingredient ing = new Ingredient(ingredientId,ingredientNameDb,ingredientPrice,null,null);
 
 
             int diId = rs.getInt("DishIngredient_id");
@@ -335,7 +336,7 @@ public class DataRetriever {
             D dType = D.valueOf(rs.getString("dish_type"));
 
             Dish dish = new Dish(dId, dName, dType, null, dPrice); // dishIngredient peut rester null
-            Ingredient ingredient = new Ingredient(ingId, ingName, ingPrice, ingCat);
+            Ingredient ingredient = new Ingredient(ingId, ingName, ingPrice, ingCat,null);
 
             ingredients.add(ingredient);
         }
@@ -345,5 +346,100 @@ public class DataRetriever {
         return ingredients;
     }
 
+   public  Ingredient saveIngredient(Ingredient toSave) throws SQLException {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
 
-}
+        String request1 = "SELECT Ingredient.id_ingredient AS id , Ingredient.name AS name FROM Ingredient WHERE Ingredient.id_ingredient = ? AND Ingredient.name = ? ";
+        pstmt = c.prepareStatement(request1);
+        pstmt.setInt(1, toSave.getId());
+        pstmt.setString(2,toSave.getName());
+
+        rs = pstmt.executeQuery();
+
+        if(rs.next()){
+            String request2 = "UPDATE Ingredient SET Ingredient.name = ? ,Ingredient.price = ? , Ingredient.category::C = ? WHERE Ingredient.id_ingredient = ?";
+            PreparedStatement pstmt2 = c.prepareStatement(request2);
+            pstmt2.setString(1,toSave.getName());
+            pstmt2.setDouble(2,toSave.getPrice());
+            pstmt2.setObject(3,toSave.getIngredientType());
+            pstmt2.setInt(4,toSave.getId());
+
+            int lg = pstmt2.executeUpdate();
+
+            System.out.println(lg + "ligne modifiée(s) ");
+
+        }else{
+            String request3 = "INSERT INTO Ingredient (id_ingredient,name,price,category) VALUES (?,?,?,?::I)";
+            PreparedStatement pstmt3 = c.prepareStatement(request3);
+            pstmt3.setInt(1,toSave.getId());
+            pstmt3.setString(2,toSave.getName());
+            pstmt3.setDouble(3,toSave.getPrice());
+            pstmt3.setObject(4,toSave.getIngredientType());
+
+            int lgInsert = pstmt3.executeUpdate();
+
+            System.out.println(lgInsert + "ligne inséré (s)");
+
+
+            pstmt.close();
+
+            pstmt3.close();
+
+
+            rs.close();
+
+
+        }
+
+
+
+        return toSave;
+
+
+
+    }
+
+    public Ingredient SaveStok(Ingredient toSave) throws SQLException {
+        PreparedStatement pstmt = null;
+
+
+        for(StockMovement sm  : toSave.getStoque()){
+            String request = "INSERT INTO StockMovement(id_stockMovement,id_ingredient,quantity,type,unit,creation_datetime) " +
+                    "VALUES (?,?,?,?::mouvement_type,?::unit_type,?) ON CONFLICT (id_stockMovement) DO NOTHING ";
+
+           pstmt =  c.prepareStatement(request);
+            pstmt.setInt(1,sm.getId());
+            pstmt.setInt(2,toSave.getId());
+            pstmt.setDouble(3,sm.getValue().getQuantity());
+            pstmt.setObject(4,sm.getType().name());
+            pstmt.setObject(5,sm.getValue().getUnit().name());
+            pstmt.setObject(6,sm.getCreationDateTime());
+
+
+            int lg  = pstmt.executeUpdate();
+
+
+            System.out.println(lg + "insert in stokMovement ");
+
+
+        }
+        return toSave;
+
+    }
+
+
+
+
+
+
+
+
+
+
+    }
+
+
+
+
+

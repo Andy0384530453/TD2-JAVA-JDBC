@@ -19,14 +19,14 @@ public class Main {
 
 
 
-               Dish d = dt.findDishById(4);
+               Dish d = dt.findDishById(1);
              System.out.println(d);
 
-             Ingredient laitue = new Ingredient(1, "Laitue", 800, VEGETABLE);
-            Ingredient tomate = new Ingredient(2, "Tomate", 600, VEGETABLE);
-            Ingredient chocolat = new Ingredient(4, "Chocolat", 3000, OTHER);
-            Ingredient beurre = new Ingredient(5, "Beurre", 2500, DAIRY);
-            Ingredient pistache = new Ingredient(6, "Pistache", 12, VEGETABLE);
+             Ingredient laitue = new Ingredient(1, "Laitue", 800, VEGETABLE,null);
+            Ingredient tomate = new Ingredient(2, "Tomate", 600, VEGETABLE,null);
+            Ingredient chocolat = new Ingredient(4, "Chocolat", 3000, OTHER,null);
+            Ingredient beurre = new Ingredient(5, "Beurre", 2500, DAIRY,null);
+            Ingredient pistache = new Ingredient(6, "Pistache", 12, VEGETABLE,null);
 
             Dish salade = new Dish(1, "Salade fraîche", START, new ArrayList<>(), 3500.0);
             Dish gateau = new Dish(4, "Gâteau au chocolat", DESSERT, new ArrayList<>(), 8000.0);
@@ -46,9 +46,9 @@ public class Main {
             System.out.println("Marge brute salade : " + salade.getGrossMargin());
             System.out.println("Marge brute gâteau : " + gateau.getGrossMargin());
 
-            Dish pizza = new Dish(7, "Pizza", MAIN, null, 12000.0);
-            Dish savedPizza = dt.saveDish(pizza);
-            System.out.println("Plat ajoute : " + savedPizza);
+           // Dish pizza = new Dish(7, "Pizza", MAIN, null, 12000.0);
+           // Dish savedPizza = dt.saveDish(pizza);
+            // System.out.println("Plat ajoute : " + savedPizza);
 
         } catch (SQLException e) {
             System.out.println("Connexion a échoue");
