@@ -425,8 +425,27 @@ public class DataRetriever {
 
         }
         return toSave;
-
     }
+    public int getStockValueAt(int idIngredient,LocalDateTime t,List<StockMovement> movements) {
+        int stock = 0;
+
+        for (StockMovement m : movements) {
+
+            if (m.getId() == idIngredient
+                    && !m.getCreationDateTime().isAfter(t)) {
+
+                if (m.getType() == MovementTypeEnum.IN) {
+                    stock += m.getValue().getQuantity();
+                } else {
+                    stock -=  m.getValue().getQuantity();
+                }
+            }
+        }
+
+        return stock;
+    }
+
+
 
 
 
