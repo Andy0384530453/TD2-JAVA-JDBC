@@ -46,9 +46,6 @@ public class Main {
             System.out.println("Marge brute salade : " + salade.getGrossMargin());
             System.out.println("Marge brute gâteau : " + gateau.getGrossMargin());
 
-           // Dish pizza = new Dish(7, "Pizza", MAIN, null, 12000.0);
-           // Dish savedPizza = dt.saveDish(pizza);
-            // System.out.println("Plat ajoute : " + savedPizza);
 
         } catch (SQLException e) {
             System.out.println("Connexion a échoue");

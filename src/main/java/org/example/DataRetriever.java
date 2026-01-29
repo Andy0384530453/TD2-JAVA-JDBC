@@ -463,110 +463,125 @@ public class DataRetriever {
     }
 
 
-    public Order saveOrder(Order orderToSave, List<StockMovement> allMovements) throws SQLException {
+    public Order saveOrder(Order orderToSave, List<StockMovement> allMovements, List<Table> allTables) throws SQLException {
 
         for (DishOrder dishOrder : orderToSave.getDishOrders()) {
             Dish dish = dishOrder.getDish();
-
             int quantityOrdered = dishOrder.getQuantity();
 
             for (DishIngredient di : dish.getDishIngredient()) {
-
                 Ingredient ingredient = di.getIngredient();
                 double requiredTotal = di.getRequiredQuantity() * quantityOrdered;
                 double stockDisponible = getCurrentStock(ingredient.getId(), allMovements);
 
+
+
                 if (stockDisponible < requiredTotal) {
-                    throw new RuntimeException("ingredient  est inssufisant :  " + ingredient.getName());
+                    throw new RuntimeException("Ingrédient insuffisant : " + ingredient.getName());
+
+
                 }
             }
         }
 
+        Table tableDemandee = orderToSave.getTable();
+        boolean tableOccupee = false;
 
-        String insertOrder = "INSERT INTO \"Order\" (id_order, reference, creation_datetime) VALUES (?, ?, ?)";
-        PreparedStatement pstmtOrder = c.prepareStatement(insertOrder);
-
-        pstmtOrder.setInt(1, orderToSave.getId());
-        pstmtOrder.setString(2, orderToSave.getReference());
-        pstmtOrder.setObject(3, orderToSave.getCreationDateTime());
-
-        int lg = pstmtOrder.executeUpdate();
-        System.out.println(lg + " inséré(s) dans la table Order");
-
-
-        pstmtOrder.close();
-
-
-        for (DishOrder dishOrder : orderToSave.getDishOrders()) {
-            Dish dish = dishOrder.getDish();
-            int quantityOrdered = dishOrder.getQuantity();
-
-            for (DishIngredient di : dish.getDishIngredient()) {
-                Ingredient ingredient = di.getIngredient();
-                double usedQuantity = di.getRequiredQuantity() * quantityOrdered;
-
-                StockMovement movementOut = new StockMovement(0, new stockValue(usedQuantity, di.getUnitType()),
-                        MovementTypeEnum.OUT, LocalDateTime.now(), ingredient);
-
-
-                String insertStock = "INSERT INTO StockMovement (id_ingredient, quantity, type, unit, creation_datetime) VALUES (?, ?, ?, ?, ?)";
-                PreparedStatement pstmtStock = c.prepareStatement(insertStock);
-                pstmtStock.setInt(1, ingredient.getId());
-                pstmtStock.setDouble(2, usedQuantity);
-                pstmtStock.setString(3, MovementTypeEnum.OUT.name());
-                pstmtStock.setString(4, di.getUnitType().name());
-                pstmtStock.setObject(5, LocalDateTime.now());
-
-                pstmtStock.executeUpdate();
-                pstmtStock.close();
+        if (tableDemandee.getOrders() != null) {
+            for (Order o : tableDemandee.getOrders()) {
+                      if (orderToSave.getHeureEntrer().isBefore(o.getHeureSortie()) && orderToSave.getHeureSortie().isAfter(o.getHeureEntrer())) {
+                         tableOccupee = true;
+                    break;
+                }
             }
         }
+
+        if (tableOccupee) {
+            List<Integer> tablesLibres = new ArrayList<>();
+            for (Table t : allTables) {
+                boolean libre = true;
+                if (t.getOrders() != null) {
+                    for (Order o : t.getOrders()) {
+                        if (orderToSave.getHeureEntrer().isBefore(o.getHeureSortie()) && orderToSave.getHeureSortie().isAfter(o.getHeureEntrer())) {
+                            libre = false;
+                            break;
+                        }
+                    }
+                }
+                if (libre){
+                    tablesLibres.add(t.getNumeroTable());
+                }
+            }
+
+            if (tablesLibres.isEmpty()) {
+                throw new RuntimeException("La table " + tableDemandee.getNumeroTable() + " est occupée. Aucune table libre disponible.");
+            } else {
+                throw new RuntimeException("La table " + tableDemandee.getNumeroTable() + " est occupée. Tables libres : " + tablesLibres);
+            }
+        }
+
+        String insertOrder = "INSERT INTO \"Order\" (reference, creation_datetime, id_table, heure_entrer, heure_sortie) " +
+                "VALUES (?, ?, ?, ?, ?) RETURNING id_order";
+        PreparedStatement pstmtOrder = c.prepareStatement(insertOrder);
+
+        pstmtOrder.setString(1, orderToSave.getReference());
+        pstmtOrder.setObject(2, orderToSave.getCreationDateTime());
+        pstmtOrder.setInt(3, tableDemandee.getId());
+        pstmtOrder.setObject(4, orderToSave.getHeureEntrer());
+        pstmtOrder.setObject(5, orderToSave.getHeureSortie());
+
+        ResultSet rs = pstmtOrder.executeQuery();
+        if (rs.next()) {
+            int generatedId = rs.getInt(1);
+            orderToSave.setId(generatedId);
+        }
+
+                 System.out.println("Commande enregistrée : " + orderToSave.getReference());
+        rs.close();
+        pstmtOrder.close();
 
         return orderToSave;
     }
 
-    public  Order findOrderByReference(String reference) throws SQLException {
-        Order order= null;
-        String request = "SELECT \"Order\".id_order  AS id , \"Order\".reference AS reference , \"Order\".creation_datetime AS time FROM  \"Order\" ";
+
+
+
+
+
+    public Order findOrderByReference(String reference) throws SQLException {
+        Order order = null;
+
+        String request = "SELECT o.id_order, o.reference, o.creation_datetime, o.id_table, o.heure_entrer, o.heure_sortie, " +
+                "t.table_numero " +
+                "FROM \"Order\" o " +
+                "JOIN \"table\" t ON o.id_table = t.id_space " +
+                "WHERE o.reference = ?";
+
         PreparedStatement preparedStatement = c.prepareStatement(request);
+        preparedStatement.setString(1, reference);
+
         ResultSet rs = preparedStatement.executeQuery();
 
-        while (rs.next()){
+        if (rs.next()) {
+            int idOrder = rs.getInt("id_order");
             String ref = rs.getString("reference");
-            if (ref.equals(reference)){
-                int id_order  =  rs.getInt("id");
-                LocalDateTime ldt = (LocalDateTime) rs.getObject("time");
+            LocalDateTime creation = (LocalDateTime) rs.getObject("creation_datetime");
+            LocalDateTime heureEntrer = (LocalDateTime) rs.getObject("heure_entrer");
+            LocalDateTime heureSortie = (LocalDateTime) rs.getObject("heure_sortie");
+            int idTable = rs.getInt("id_table");
+            int numeroTable = rs.getInt("table_numero");
 
-                 order = new Order(id_order,ref,ldt,null);
-
-                break;
-
-            }
-
-            if (!ref.equals(reference)){
-                throw new RuntimeException("commande introuvable" + reference);
-
-            }
-
-
-
-
-
+            Table table = new Table(idTable, numeroTable, null); // pas besoin des orders pour l'instant
+            order = new Order(idOrder, ref, creation, null, table, heureEntrer, heureSortie);
+        } else {
+            throw new RuntimeException("Commande introuvable : " + reference);
         }
+
+        rs.close();
+        preparedStatement.close();
+
         return order;
-
-
-
-
-
-
-
     }
-
-
-
-
-
 
 
 
