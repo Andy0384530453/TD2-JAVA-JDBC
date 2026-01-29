@@ -2,6 +2,7 @@ package org.example;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class Main {
 
                Dish d = dt.findDishById(1);
              System.out.println(d);
+
 
              Ingredient laitue = new Ingredient(1, "Laitue", 800, VEGETABLE,null);
             Ingredient tomate = new Ingredient(2, "Tomate", 600, VEGETABLE,null);
@@ -45,6 +47,36 @@ public class Main {
 
             System.out.println("Marge brute salade : " + salade.getGrossMargin());
             System.out.println("Marge brute gâteau : " + gateau.getGrossMargin());
+
+
+            List<StockMovement> allMovements = dt.findAllStockMovements();
+
+            System.out.println("Nb mouvements chargés : " + allMovements.size());
+
+            System.out.println("Stock Laitue   : "
+                    + dt.getCurrentStock(1, allMovements));
+
+            System.out.println("Stock Tomate  : "
+                    + dt.getCurrentStock(2, allMovements));
+
+            System.out.println("Stock Poulet   : "
+                    + dt.getCurrentStock(3, allMovements));
+
+            System.out.println("Stock Chocolat  : "
+                    + dt.getCurrentStock(4, allMovements));
+
+            System.out.println("Stock Beurre  : "
+                    + dt.getCurrentStock(5, allMovements));
+
+            LocalDateTime t = LocalDateTime.of(2024, 1, 6, 12, 0);
+
+            System.out.println("Stock Tomate au 06/01/2024 12:00  : "
+                    + dt.getStockValueAt(2, t, allMovements));
+
+
+
+            LocalDateTime time = LocalDateTime.of(2024, 1, 6, 12, 0);
+            System.out.println("Stock Tomate au 06/01/2024 12:00 : " + dt.getStockValueAt(2, t, allMovements));
 
 
         } catch (SQLException e) {

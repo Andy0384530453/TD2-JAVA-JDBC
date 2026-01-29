@@ -401,6 +401,7 @@ public class DataRetriever {
 
     }
 
+
     public Ingredient SaveStok(Ingredient toSave) throws SQLException {
         PreparedStatement pstmt = null;
 
@@ -427,24 +428,61 @@ public class DataRetriever {
         }
         return toSave;
     }
-    public double  getStockValueAt(int idIngredient,LocalDateTime t,List<StockMovement> movements) {
+    public List<StockMovement> findAllStockMovements() throws SQLException {
+        List<StockMovement> movements = new ArrayList<>();
+
+        String sql = " SELECT sm.id_stockmovement,sm.id_ingredient,sm.quantity,sm.type,sm.unit,sm.creation_datetime,i.name " +
+                "FROM StockMovement sm " +
+                "JOIN Ingredient i " +
+                "ON sm.id_ingredient = i.id_ingredient ";
+
+        PreparedStatement ps = c.prepareStatement(sql);
+        ResultSet rs = ps.executeQuery();
+
+        while (rs.next()) {
+            int idMovement = rs.getInt("id_stockmovement");
+            int idIngredient = rs.getInt("id_ingredient");
+            double quantity = rs.getDouble("quantity");
+
+            MovementTypeEnum type = MovementTypeEnum.valueOf(rs.getString("type"));
+            Unit unit = Unit.valueOf(rs.getString("unit"));
+
+            LocalDateTime date = rs.getObject("creation_datetime", LocalDateTime.class);
+
+            Ingredient ingredient = new Ingredient(idIngredient, rs.getString("name"), 0, null, null);
+
+            stockValue value = new stockValue(quantity, unit);
+
+            StockMovement sm = new StockMovement(idMovement,value,type,date,ingredient);
+
+            movements.add(sm);
+        }
+
+        rs.close();
+        ps.close();
+
+        return movements;
+    }
+
+    public double getStockValueAt(int idIngredient, LocalDateTime t, List<StockMovement> movements) {
         double stock = 0.0;
 
         for (StockMovement m : movements) {
-
-            if (m.getId() == idIngredient
-                    && !m.getCreationDateTime().isAfter(t)) {
-
+            if (m.getIngredient().getId() == idIngredient && !m.getCreationDateTime().isAfter(t)) {
                 if (m.getType() == MovementTypeEnum.IN) {
                     stock += m.getValue().getQuantity();
-                } else {
-                    stock -=  m.getValue().getQuantity();
+                } else if (m.getType() == MovementTypeEnum.OUT) {
+                    stock -= m.getValue().getQuantity();
                 }
             }
+
         }
+
+
 
         return stock;
     }
+
     public double getCurrentStock(int idIngredient, List<StockMovement> movements) {
 
         double stock = 0.0;
@@ -571,7 +609,7 @@ public class DataRetriever {
             int idTable = rs.getInt("id_table");
             int numeroTable = rs.getInt("table_numero");
 
-            Table table = new Table(idTable, numeroTable, null); // pas besoin des orders pour l'instant
+            Table table = new Table(idTable, numeroTable, null);
             order = new Order(idOrder, ref, creation, null, table, heureEntrer, heureSortie);
         } else {
             throw new RuntimeException("Commande introuvable : " + reference);
