@@ -360,6 +360,7 @@ public class DataRetriever {
         if(rs.next()){
             String request2 = "UPDATE Ingredient SET Ingredient.name = ? ,Ingredient.price = ? , Ingredient.category::C = ? WHERE Ingredient.id_ingredient = ?";
             PreparedStatement pstmt2 = c.prepareStatement(request2);
+
             pstmt2.setString(1,toSave.getName());
             pstmt2.setDouble(2,toSave.getPrice());
             pstmt2.setObject(3,toSave.getIngredientType());
@@ -426,8 +427,8 @@ public class DataRetriever {
         }
         return toSave;
     }
-    public int getStockValueAt(int idIngredient,LocalDateTime t,List<StockMovement> movements) {
-        int stock = 0;
+    public double  getStockValueAt(int idIngredient,LocalDateTime t,List<StockMovement> movements) {
+        double stock = 0.0;
 
         for (StockMovement m : movements) {
 
@@ -444,11 +445,115 @@ public class DataRetriever {
 
         return stock;
     }
+    public double getCurrentStock(int idIngredient, List<StockMovement> movements) {
+
+        double stock = 0.0;
+
+        for (StockMovement m : movements) {
+            if (m.getIngredient().getId() == idIngredient) {
+                if (m.getType() == MovementTypeEnum.IN) {
+                    stock += m.getValue().getQuantity();
+                } else {
+                    stock -= m.getValue().getQuantity();
+                }
+            }
+        }
+
+        return stock;
+    }
+
+
+    public Order saveOrder(Order orderToSave, List<StockMovement> allMovements) throws SQLException {
+
+        for (DishOrder dishOrder : orderToSave.getDishOrders()) {
+            Dish dish = dishOrder.getDish();
+
+            int quantityOrdered = dishOrder.getQuantity();
+
+            for (DishIngredient di : dish.getDishIngredient()) {
+
+                Ingredient ingredient = di.getIngredient();
+                double requiredTotal = di.getRequiredQuantity() * quantityOrdered;
+                double stockDisponible = getCurrentStock(ingredient.getId(), allMovements);
+
+                if (stockDisponible < requiredTotal) {
+                    throw new RuntimeException("ingredient  est inssufisant :  " + ingredient.getName());
+                }
+            }
+        }
+
+
+        String insertOrder = "INSERT INTO \"Order\" (id_order, reference, creation_datetime) VALUES (?, ?, ?)";
+        PreparedStatement pstmtOrder = c.prepareStatement(insertOrder);
+
+        pstmtOrder.setInt(1, orderToSave.getId());
+        pstmtOrder.setString(2, orderToSave.getReference());
+        pstmtOrder.setObject(3, orderToSave.getCreationDateTime());
+
+        int lg = pstmtOrder.executeUpdate();
+        System.out.println(lg + " inséré(s) dans la table Order");
+
+
+        pstmtOrder.close();
+
+
+        for (DishOrder dishOrder : orderToSave.getDishOrders()) {
+            Dish dish = dishOrder.getDish();
+            int quantityOrdered = dishOrder.getQuantity();
+
+            for (DishIngredient di : dish.getDishIngredient()) {
+                Ingredient ingredient = di.getIngredient();
+                double usedQuantity = di.getRequiredQuantity() * quantityOrdered;
+
+                StockMovement movementOut = new StockMovement(0, new stockValue(usedQuantity, di.getUnitType()),
+                        MovementTypeEnum.OUT, LocalDateTime.now(), ingredient);
+
+
+                String insertStock = "INSERT INTO StockMovement (id_ingredient, quantity, type, unit, creation_datetime) VALUES (?, ?, ?, ?, ?)";
+                PreparedStatement pstmtStock = c.prepareStatement(insertStock);
+                pstmtStock.setInt(1, ingredient.getId());
+                pstmtStock.setDouble(2, usedQuantity);
+                pstmtStock.setString(3, MovementTypeEnum.OUT.name());
+                pstmtStock.setString(4, di.getUnitType().name());
+                pstmtStock.setObject(5, LocalDateTime.now());
+
+                pstmtStock.executeUpdate();
+                pstmtStock.close();
+            }
+        }
+
+        return orderToSave;
+    }
+
+    public  Order findOrderByReference(String reference) throws SQLException {
+        Order order= null;
+        String request = "SELECT \"Order\".id_order  AS id , \"Order\".reference AS reference , \"Order\".creation_datetime AS time FROM  \"Order\" ";
+        PreparedStatement preparedStatement = c.prepareStatement(request);
+        ResultSet rs = preparedStatement.executeQuery();
+
+        while (rs.next()){
+            String ref = rs.getString("reference");
+            if (ref.equals(reference)){
+                int id_order  =  rs.getInt("id");
+                LocalDateTime ldt = (LocalDateTime) rs.getObject("time");
+
+                 order = new Order(id_order,ref,ldt,null);
+
+                break;
+
+            }
+
+            if (!ref.equals(reference)){
+                throw new RuntimeException("commande introuvable" + reference);
+
+            }
 
 
 
 
 
+        }
+        return order;
 
 
 
@@ -457,6 +562,18 @@ public class DataRetriever {
 
 
     }
+
+
+
+
+
+
+
+
+
+
+
+}
 
 
 
