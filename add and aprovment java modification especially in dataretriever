@@ -1,0 +1,20 @@
+[33m7c69190[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33mf1ecc2f[m HEAD@{1}: reset: moving to HEAD~1
+[33mf22ad9b[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{2}: commit (merge): add and aprovment java modification especially in dataretriever
+[33mf1ecc2f[m HEAD@{3}: commit: add and aprovment java modification especially in dataretriever
+[33m7c69190[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{4}: commit: ajout des modification
+[33m5e9b3d5[m HEAD@{5}: commit: ajout de l'examen
+[33m7d13777[m HEAD@{6}: commit: fin de TD4
+[33m6b930b9[m HEAD@{7}: commit: fin td3
+[33m105e71d[m HEAD@{8}: commit: ajout des modifications du précédent TD
+[33m00fdf6d[m HEAD@{9}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m00fdf6d[m HEAD@{10}: pull origin main --rebase (pick): ajout des modif sur le td3
+[33m49cb3b0[m HEAD@{11}: pull origin main --rebase (start): checkout 49cb3b02d1f0ef45acb00a9ad5536dcda99b6f46
+[33m25d23a3[m HEAD@{12}: commit: ajout des modif sur le td3
+[33mcfae829[m HEAD@{13}: commit: ajout des dernier modification
+[33mce7428a[m HEAD@{14}: commit: ajout du dernier methode fin
+[33mf1c5347[m HEAD@{15}: commit: ajout des autres méthodes
+[33mcf0864a[m HEAD@{16}: commit: ajout du méthode createIngredients
+[33m5b310f7[m HEAD@{17}: pull origin main --allow-unrelated-histories: Merge made by the 'ort' strategy.
+[33mde2600f[m HEAD@{18}: Branch: renamed refs/heads/master to refs/heads/main
+[33mde2600f[m HEAD@{20}: commit (initial): Premier commit TD2 Java JDBC
