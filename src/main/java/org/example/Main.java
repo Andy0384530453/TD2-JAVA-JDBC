@@ -79,6 +79,12 @@ public class Main {
             System.out.println("Stock Tomate au 06/01/2024 12:00 : " + dt.getStockValueAt(2, t, allMovements));
 
 
+            stockValue dbStock = dt.getStockValueAt(LocalDateTime.now(), 1);
+
+            System.out.println("Stock DB : " + dbStock.getQuantity());
+
+
+
         } catch (SQLException e) {
             System.out.println("Connexion a échoue");
             throw new RuntimeException(e);
